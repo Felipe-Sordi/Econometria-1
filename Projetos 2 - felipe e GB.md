@@ -82,3 +82,7 @@ split_df <- split(df, df$y)
 cum_taxes <- map(split_df, ~ (cumprod((.$b/100) + 1) - 1))
 sol2 <- do.call(rbind,
                 map2(split_df, cum_taxes, ~ tibble(.x, cum_taxes = .y)))
+                
+                
+                
+                sbdhjhdkjsi

@@ -1,0 +1,100 @@
+####Econometria III - Felipe De Sordi; Pedro Morita Kubo e Camila Vidal:
+
+#limpando environment e plots:
+
+rm(list=ls())
+graphics.off()
+
+#abrindo e/ou instalando pacotes + verificação de pacotes: 
+
+load.lib <- c("dplyr", "tidyverse", "readxl", "ggplot2", "rbcb", "xts", "lubridate", "WDI",
+              "haven","plm", "reshape2", "janitor","quantmod","ggseas", "Quandl",
+              "stargazer", "tseries", "urca", "vars", "aTSA", "bruceR", "bayesforecast", "broom",
+              "forecast", "tsDyn", "fastDummies", "fixest",
+              "sandwich", "lmtest")
+install.lib <- load.lib[!load.lib %in% installed.packages()]
+for(lib in install.lib) install.packages(lib,dependencies=TRUE)
+sapply(load.lib, require, character=TRUE)
+
+
+#---------importando--bases--e--realizando--o--tratamento--------------------------------------------#
+CO2 <- WDI(indicator = "EN.ATM.CO2E.PC", extra = TRUE) 
+GDP_pc <- WDI(indicator = "NY.GDP.PCAP.CD", extra = TRUE)
+Health_exp <- WDI(indicator = "SH.XPD.CHEX.PC.CD", extra = TRUE)
+literacy <- WDI(indicator = "SE.ADT.LITR.ZS", extra = TRUE)
+Urban <- WDI(indicator = "SP.URB.TOTL.IN.ZS", extra = TRUE)
+More65 <- WDI(indicator = "SP.POP.65UP.TO.ZS", extra = TRUE)
+
+df = CO2 %>%
+  inner_join(GDP_pc, by = c("country", "year")) %>% 
+  inner_join(Health_exp, by = c("country", "year")) %>% 
+  inner_join(literacy, by = c("country", "year")) %>% 
+  inner_join(Urban, by = c("country", "year")) %>% 
+  inner_join(More65, by = c("country", "year")) %>% 
+  dplyr::select(country, year, EN.ATM.CO2E.PC, NY.GDP.PCAP.CD,
+                SH.XPD.CHEX.PC.CD, SE.ADT.LITR.ZS, SP.URB.TOTL.IN.ZS,
+                SP.POP.65UP.TO.ZS) %>% 
+  filter(year >= 1990) %>% 
+  filter(year <= 2019) 
+  
+
+
+
+#Análise descritiva:
+class(df)
+summary(df)
+stargazer(df)
+
+#-------------------------------Regressões-------------------------------------------------#
+
+#Especificando o modelo:
+
+modelo <- as.formula(SH.XPD.CHEX.PC.CD ~ EN.ATM.CO2E.PC + NY.GDP.PCAP.CD + SE.ADT.LITR.ZS + 
+                       SP.URB.TOTL.IN.ZS + SP.POP.65UP.TO.ZS)
+
+#Primeira diferença:
+
+reg_fd <- plm(formula = modelo, 
+              data = df,
+              effect = "individual",
+              model = "fd",
+              index = c("country", "year"))
+
+
+
+#Efeitos Fixos:
+
+reg_fe <- plm(formula = modelo, 
+              data = df,
+              effect = "individual",
+              model = "within",
+              index = c("country", "year"))
+
+#MQO empilhado: 
+
+pols <- plm(formula = modelo, 
+            data = df,
+            effect = "individual",
+            model = "pooling",
+            index = c("country", "year"))   
+#Randon Effects:
+
+reg_RE <- plm(formula = modelo, 
+              data = df,
+              effect = "individual",
+              model = "random",
+              index = c("country", "year"))  
+#resultados:
+
+summary(reg_fd, vcov = function(x) plm::vcovHC(x, method = 'arellano'))
+summary(reg_fe, vcov = function(x) plm::vcovHC(x, method = 'arellano'))
+summary(pols, vcov = function(x) plm::vcovHC(x, method = 'arellano'))
+summary(reg_RE, vcov = function(x) plm::vcovHC(x, method = 'arellano'))
+
+stargazer(pols, reg_fe, reg_fd, reg_RE, title = "Gastos Com Saúde vs. Emissão de CO2", aling = T)
+#teste Hausman:
+
+ phtest(reg_fe, reg_RE)
+
+
+

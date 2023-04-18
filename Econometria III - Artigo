@@ -33,11 +33,12 @@ df = CO2 %>%
   inner_join(More65, by = c("country", "year")) %>% 
   dplyr::select(country, year, EN.ATM.CO2E.PC, NY.GDP.PCAP.CD,
                 SH.XPD.CHEX.PC.CD, SE.ADT.LITR.ZS, SP.URB.TOTL.IN.ZS,
-                SP.POP.65UP.TO.ZS) %>% 
+                SP.POP.65UP.TO.ZS, income.x) %>% 
   filter(year >= 1990) %>% 
   filter(year <= 2019) 
-  
 
+df <- df[-grep("Low income", df$income.x),]
+df <- df[-grep("Aggregates", df$income.x),]
 
 
 #Análise descritiva:
@@ -49,9 +50,9 @@ stargazer(df)
 
 #Especificando o modelo:
 
-modelo <- as.formula(SH.XPD.CHEX.PC.CD ~ EN.ATM.CO2E.PC + NY.GDP.PCAP.CD + SE.ADT.LITR.ZS + 
+modelo <- as.formula(SH.XPD.CHEX.PC.CD ~ 0 + EN.ATM.CO2E.PC + NY.GDP.PCAP.CD + SE.ADT.LITR.ZS + 
                        SP.URB.TOTL.IN.ZS + SP.POP.65UP.TO.ZS)
-
+help("as.formula")
 #Primeira diferença:
 
 reg_fd <- plm(formula = modelo, 

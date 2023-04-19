@@ -11,7 +11,7 @@ load.lib <- c("dplyr", "tidyverse", "readxl", "ggplot2", "rbcb", "xts", "lubrida
               "haven","plm", "reshape2", "janitor","quantmod","ggseas", "Quandl",
               "stargazer", "tseries", "urca", "vars", "aTSA", "bruceR", "bayesforecast", "broom",
               "forecast", "tsDyn", "fastDummies", "fixest",
-              "sandwich", "lmtest")
+              "sandwich", "lmtest","car")
 install.lib <- load.lib[!load.lib %in% installed.packages()]
 for(lib in install.lib) install.packages(lib,dependencies=TRUE)
 sapply(load.lib, require, character=TRUE)
@@ -35,7 +35,8 @@ df = CO2 %>%
                 SH.XPD.CHEX.PC.CD, SE.ADT.LITR.ZS, SP.URB.TOTL.IN.ZS,
                 SP.POP.65UP.TO.ZS, income.x) %>% 
   filter(year >= 1990) %>% 
-  filter(year <= 2019) 
+  filter(year <= 2019) %>% 
+  filter(!is.na(income.x))
 
 df <- df[-grep("Low income", df$income.x),]
 df <- df[-grep("Aggregates", df$income.x),]
@@ -52,7 +53,7 @@ stargazer(df)
 
 modelo <- as.formula(SH.XPD.CHEX.PC.CD ~ 0 + EN.ATM.CO2E.PC + NY.GDP.PCAP.CD + SE.ADT.LITR.ZS + 
                        SP.URB.TOTL.IN.ZS + SP.POP.65UP.TO.ZS)
-help("as.formula")
+
 #Primeira diferença:
 
 reg_fd <- plm(formula = modelo, 
@@ -96,6 +97,14 @@ stargazer(pols, reg_fe, reg_fd, reg_RE, title = "Gastos Com Saúde vs. Emissão 
 #teste Hausman:
 
  phtest(reg_fe, reg_RE)
+ 
+#teste Durbin Watson
+ 
 
+pdwtest(reg_fd, data=df)
+pdwtest(reg_fe, data=df)
+pdwtest(pols, data=df)
 
+pais <- df %>% 
+  filter(year == 2019)
 

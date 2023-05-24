@@ -1,0 +1,162 @@
+###Problema 4: Avaliação da performance de um portfólio
+
+
+#Limpando envrironment e plots:
+
+rm(list=ls())
+graphics.off()
+
+#instalando pacotes necessários:
+
+load.lib <- c("dplyr", "tidyverse", "readxl", "ggplot2", "xts", "lubridate",
+              "mFilter", 'quantmod',"readr", 'tidyquant', "rashTools")
+install.lib <- load.lib[!load.lib %in% installed.packages()]
+for(lib in install.lib) install.packages(lib,dependencies=TRUE)
+sapply(load.lib, require, character=TRUE)
+
+#importando base de dados
+
+BB_gov <- read_excel("Documents/FGV /5º Semestre/Investimentos II/Ivestimentos 2 - Problema 4.xlsx", sheet = "BB Acoes Governanca Is FI")
+Itau_gov <- read_excel("Documents/FGV /5º Semestre/Investimentos II/Ivestimentos 2 - Problema 4.xlsx", sheet = "itau")
+Bra_small <- read_excel("Documents/FGV /5º Semestre/Investimentos II/Ivestimentos 2 - Problema 4.xlsx", sheet = "Bram FIA Small Caps")
+Bra_ibov <- read_excel("Documents/FGV /5º Semestre/Investimentos II/Ivestimentos 2 - Problema 4.xlsx", sheet = "Bradesco H FIA Ibovespa")
+Btg <- read_excel("Documents/FGV /5º Semestre/Investimentos II/Ivestimentos 2 - Problema 4.xlsx", sheet = "BTG Pactual Alpha FIA")
+Opp <- read_excel("Documents/FGV /5º Semestre/Investimentos II/Ivestimentos 2 - Problema 4.xlsx", sheet = "Opportunity Selection Master FI")
+IBOV <- read_excel("Documents/FGV /5º Semestre/Investimentos II/Ivestimentos 2 - Problema 4.xlsx", sheet = "IBOV")
+CDI <- read_excel("Documents/FGV /5º Semestre/Investimentos II/Ivestimentos 2 - Problema 4.xlsx", sheet = "CDI Acumul")
+
+#tratamento da base:
+
+#filtrando para o período de interesse:
+
+BB_gov <- subset(BB_gov, Data> "2014-01-01" &  Data< "2018-12-31")
+Itau_gov <- subset(Itau_gov, Data> "2014-01-01" &  Data< "2018-12-31")
+Bra_small <- subset(Bra_small, Data> "2014-01-01" &  Data< "2018-12-31")
+Bra_ibov <- subset(Bra_ibov, Data> "2014-01-01" &  Data< "2018-12-31")
+Btg <- subset(Btg, Data> "2014-01-01" &  Data< "2018-12-31")
+Opp <- subset(Opp, Data> "2014-01-01" &  Data< "2018-12-31")
+IBOV <- subset(IBOV, Data> "2014-01-01" &  Data< "2018-12-31")
+CDI <- subset(CDI, Data> "2014-01-01" &  Data< "2018-12-31")
+
+#excluindo feriados:
+
+colnames(BB_gov)[2] <- "valor"  
+BB_gov$valor<- as.numeric(BB_gov$valor) 
+BB_gov <- drop_na(BB_gov)
+
+colnames(Itau_gov)[2] <- "valor"  
+Itau_gov$valor<- as.numeric(Itau_gov$valor) 
+Itau_gov <- drop_na(Itau_gov)
+
+colnames(Bra_small)[2] <- "valor"  
+Bra_small$valor<- as.numeric(Bra_small$valor) 
+Bra_small <- drop_na(Bra_small)
+
+colnames(Bra_ibov)[2] <- "valor"  
+Bra_ibov$valor<- as.numeric(Bra_ibov$valor) 
+Bra_ibov <- drop_na(Bra_ibov)
+
+colnames(Btg)[2] <- "valor"  
+Btg$valor<- as.numeric(Btg$valor) 
+Btg <- drop_na(Btg)
+
+colnames(Opp)[2] <- "valor"  
+Opp$valor<- as.numeric(Opp$valor) 
+Opp <- drop_na(Opp)
+
+colnames(IBOV)[2] <- "valor"  
+IBOV$valor<- as.numeric(IBOV$valor) 
+IBOV <- drop_na(IBOV)
+
+colnames(CDI)[2] <- "valor"  
+CDI$valor<- as.numeric(CDI$valor) 
+CDI <- drop_na(CDI)
+
+#Calculo do retorno:
+
+BB_gov$ret <- (BB_gov$valor/lag(BB_gov$valor))-1
+Itau_gov$ret <- (Itau_gov$valor/lag(Itau_gov$valor))-1
+Bra_ibov$ret <- (Bra_ibov$valor/lag(Bra_ibov$valor))-1
+Bra_small$ret <- (Bra_small$valor/lag(Bra_small$valor))-1
+Btg$ret <- (Btg$valor/lag(Btg$valor))-1
+Opp$ret <- (Opp$valor/lag(Opp$valor))-1
+CDI$ret <- (CDI$valor/lag(CDI$valor))-1
+IBOV$ret <- (IBOV$valor/lag(IBOV$valor))-1
+
+#tirando primeira obs
+
+BB_gov <- BB_gov[-1,]
+Itau_gov <- Itau_gov[-1,]
+Bra_ibov <- Bra_ibov[-1,]
+Bra_small <- Bra_small[-1,]
+Btg <- Btg[-1,]
+Opp <- Opp[-1,]
+CDI <- CDI[-1,]
+IBOV <- IBOV[-1,]
+
+#calculando desvio padrão
+
+dp_A <- sd(BB_gov$ret)
+dp_B <- sd(Itau_gov$ret)
+dp_C <- sd(Bra_ibov$ret)
+dp_D <- sd(Bra_small$ret)
+dp_E <- sd(Btg$ret)
+dp_F <- sd(Opp$ret)
+dp_IBOV <- sd(IBOV$ret)
+mean_CDI <- mean(CDI$ret)
+ex <- IBOV$ret-CDI$ret
+regA <- lm(BB_gov$ret ~ 1 + ex)
+regB <- lm(Itau_gov$ret ~ 1 + ex)
+regC <- lm(Bra_ibov$ret ~ 1 + ex)
+regD <- lm(Bra_small$ret ~ 1 + ex)
+regE <- lm(Btg$ret ~ 1 + ex)
+regF <- lm(Opp$ret ~ 1 + ex)
+
+A <- (dp_IBOV/dp_A)
+B <- (dp_IBOV/dp_B)
+C <- (dp_IBOV/dp_C)
+D <- (dp_IBOV/dp_D)
+E <- (dp_IBOV/dp_E)
+f <-  (dp_IBOV/dp_F)
+
+regA$residuals
+(1- A)*mean_CDI + A*mean(BB_gov$ret)-mean(IBOV$ret)
+Indicadores <- data.frame (Fundo  = c("A", "B", "C", "D", "E", "F"),
+                  Sharpe = c((mean(BB_gov$ret)-mean_CDI)/dp_A,
+                                    (mean(Itau_gov$ret)-mean_CDI)/dp_B,
+                                    (mean(Bra_ibov$ret)-mean_CDI)/dp_C,
+                                    (mean(Bra_small$ret)-mean_CDI)/dp_D,
+                                    (mean(Btg$ret)-mean_CDI)/dp_E,
+                                    (mean(Opp$ret)-mean_CDI)/dp_F),
+                  Alpha_jensen = c(regA$coefficients[1], 
+                                   regB$coefficients[1],
+                                   regC$coefficients[1],
+                                   regD$coefficients[1],
+                                   regE$coefficients[1],
+                                   regF$coefficients[1]),
+                  Treynor = c((mean(BB_gov$ret)-mean_CDI)/regA$coefficients[2],
+                              (mean(Itau_gov$ret)-mean_CDI)/regB$coefficients[2],
+                              (mean(Bra_ibov$ret)-mean_CDI)/regC$coefficients[2],
+                              (mean(Bra_small$ret)-mean_CDI)/regD$coefficients[2],
+                              (mean(Btg$ret)-mean_CDI)/regE$coefficients[2],
+                              (mean(Opp$ret)-mean_CDI)/regF$coefficients[2]),
+                  
+                  information = c(regA$coefficients[1]/sd(regA$residuals),
+                                  regB$coefficients[1]/sd(regB$residuals),
+                                  regC$coefficients[1]/sd(regC$residuals),
+                                  regD$coefficients[1]/sd(regD$residuals),
+                                  regE$coefficients[1]/sd(regE$residuals),
+                                  regF$coefficients[1]/sd(regF$residuals)),
+                 
+                   M_squared = c((1- A)*mean_CDI + A*mean(BB_gov$ret)-mean(IBOV$ret),
+                                (1- B)*mean_CDI + B*mean(Itau_gov$ret)-mean(IBOV$ret),
+                                (1- C)*mean_CDI + C*mean(Bra_ibov$ret)-mean(IBOV$ret),
+                                (1- D)*mean_CDI + D*mean(Bra_small$ret)-mean(IBOV$ret),
+                                (1- E)*mean_CDI + E*mean(Btg$ret)- mean(IBOV$ret),
+                                (1- f)*mean_CDI + f*mean(Opp$ret)- mean(IBOV$ret)),
+                  Beta = c(regA$coefficients[2],
+                           regB$coefficients[2],
+                           regC$coefficients[2],
+                           regD$coefficients[2],
+                           regE$coefficients[2],
+                           regF$coefficients[2]))

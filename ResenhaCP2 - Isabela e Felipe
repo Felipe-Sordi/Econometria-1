@@ -8,7 +8,7 @@ graphics.off()
 #abrindo e/ou instalando pacotes necessários + verificação de conflitos:
 
 load.lib <- c("dplyr", "tidyverse", "readxl", "ggplot2", "xts", "lubridate",
-              "mFilter", 'tidyquant', "fastDummies", "coalitions", "webr")
+              "mFilter", 'tidyquant', "fastDummies", "coalitions", "webr","writexl")
 install.lib <- load.lib[!load.lib %in% installed.packages()]
 for(lib in install.lib) install.packages(lib,dependencies=TRUE)
 sapply(load.lib, require, character=TRUE)
@@ -18,6 +18,7 @@ library(cepespR)
 #----------------------------- Tratamento da base -----------------------------#
 
 votes <- get_votes(year=2018, position="Federal Deputy", regional_aggregation="State")
+candidates <- get_candidates(year = 2018, position = "Federal Deputy")
 
 df = votes %>% 
   mutate(party = substr(NUMERO_CANDIDATO, start = 1, stop = 2)) %>% 
@@ -25,12 +26,15 @@ df = votes %>%
   select(party, QTDE_VOTOS)
 
 df_a <- aggregate(df$QTDE_VOTOS, by = list(df$party), FUN=sum)
+n_partido = candidates %>% 
+  select(NOME_PARTIDO, NUMERO_PARTIDO) 
+n_partido <- n_partido[!duplicated(n_partido), ]
 
 #------------------------- Coeficiente Partidário -----------------------------#
 
-cadeiras <- 77
+cadeiras <- 53
 coeficiente_eleitoral <- floor(sum(df_a$x)/cadeiras)
-
+coeficiente_eleitoral
 #--------------------------- Coeficiente Eleitoral ----------------------------#
 
 coeficiente_partidário <- floor(df_a$x/coeficiente_eleitoral)  
@@ -41,13 +45,19 @@ base = df_a %>%
 #-------------------- Sobras + distribuição das cadeiras ----------------------#
 
 sobras <- cadeiras - sum(base$qp)
-
+sobras
 for (i in 1:sobras) {
   base$Sobra_i <- base$x/(base$qp+1)
   
   base$qp <- base$qp+ifelse(base$Sobra_i == max(base$Sobra_i), 1, 0)
   i <- i+1
 }
-
+colnames(base)[1] = 'NUMERO_PARTIDO'
 base$dHondt <- dHondt(votes = base$x, parties = base$Group.1, n_seats = cadeiras)
+base_b = base %>% 
+  inner_join(n_partido, by = NOME_PARTIDO )
+
+#------------------------------ Salvar no Excel -------------------------------#
+
+b <- write_xlsx(base,"Documents/FGV /5º Semestre/Ciência Política Brasileira\\cadeiras.xlsx")
 

@@ -16,14 +16,14 @@ sapply(load.lib, require, character = TRUE)
 
 Prices = read_excel("/Users/felipe/Documents/FGV /PS-VELT/Fechamento.xlsx") %>% 
   mutate(Date = as.Date(Data),
-         VELT = as.numeric(`Fechamento\r\najust p/ prov\r\nEm moeda orig VELT`),
+         VELT = as.numeric(`Fechamento\r\najust p/ prov\r\nEm moeda orig VELT`), #converts price columns to numeric format
          CDI = as.numeric(`Fechamento\r\najust p/ prov\r\nEm moeda orig  CDI Acumulado`),
          IBOV = as.numeric(`Fechamento\r\najust p/ prov\r\nEm moeda orig IBOV`),
          `10Y T-Bond`= as.numeric(`Fechamento\r\najust p/ prov\r\nEm moeda orig   T-BOND 10Y`),
          PTAX = as.numeric(`Fechamento ajust p/ prov Ptax`),
          `IMA-Geral` = as.numeric(`Fechamento\r\najust p/ prov\r\nEm moeda orig IMA Geral`),
          `S&P 500` = as.numeric(`Fechamento\r\najust p/ prov\r\nEm moeda orig S&P500`),
-         `USD/BRL` = 1/PTAX) %>% 
+         `USD/BRL` = 1/PTAX) %>% #calculates the exchange rate USD/BRL as the reciprocal of the PTAX
   select(Date, VELT, CDI, IBOV, `10Y T-Bond`, `IMA-Geral`, `S&P 500`, `USD/BRL`) %>% 
   na.omit()
   
@@ -35,7 +35,7 @@ ret = function(x) {
   return(result)
 }
 
-
+#Calculating returns
 Returns = Prices %>% 
   mutate(VELT = ret(VELT),
          IBOV = ret(IBOV),
@@ -49,8 +49,8 @@ Returns = Prices %>%
 #=========   Performance Assessment and Attribution Analysis  =================#
 
 Returns_A = Returns %>% 
-  mutate(exc_return = VELT - CDI, #excess return
-         Cum_Return = cumprod(1+VELT), #cumulative returns
+  mutate(exc_return = VELT - CDI, #excess return #excess returns
+         Cum_Return = cumprod(1+VELT), #cumulative returns 
          Month = month(Date),
          Year = year(Date))  
 
